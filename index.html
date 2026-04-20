@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Simulador de Cultivo de Microalgas · Spirulina </title>
+  <meta name="description"
+    content="Simulador interactivo de cultivo de microalgas en biorreactor. Controla pH, temperatura, luz, CO₂, nutrientes y salinidad para optimizar el crecimiento de Spirulina platensis.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+  <!-- ═══════════ LANDING SCREEN ═══════════ -->
+  <div id="landing" class="landing">
+    <canvas id="landing-canvas"></canvas>
+    <div class="landing-content">
+      <div class="landing-badge">Simulación Interactivo·</div>
+      <div class="landing-badge">SpiruFert</div>
+      <h1 class="landing-title">Simulador de Cultivo<br>de <span class="gradient-text">Microalgas</span></h1>
+      <p class="landing-desc">Controla las variables de un biorreactor y observa en tiempo real el crecimiento de
+        <em>Spirulina platensis</em><em></em>. Experimenta con pH, temperatura, luz, CO₂, nutrientes y salinidad.
+      </p>
+      <button id="btn-start-sim" class="landing-btn">
+        <span class="btn-icon">🧬</span>
+        Iniciar Simulador
+        <span class="btn-arrow">→</span>
+      </button>
+      <div class="landing-features">
+        <div class="landing-feature"><span>🔬</span> Biorreactor interactivo</div>
+        <div class="landing-feature"><span>📊</span> Parámetros en tiempo real</div>
+        <div class="landing-feature"><span>🧪</span> 8 variables controlables</div>
+        <div class="landing-feature"><span>⚗️</span> Proceso de recolección</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SIMULATOR APP ═══════════ -->
+  <div id="app" class="app hidden">
+    <header class="app-header">
+      <div class="header-left">
+        <div class="badge">Simulación 1 · Cultivo de microalgas</div>
+        <h1 class="app-title">Biorreactor interactivo · <em>Spirulina</em><em></em></h1>
+      </div>
+      <div class="header-right">
+        <button id="btn-theme" class="icon-btn" title="Cambiar tema claro/oscuro">🌙</button>
+        <button id="btn-reset" class="icon-btn" title="Reiniciar simulación">↺</button>
+      </div>
+    </header>
+
+    <!-- TABS -->
+    <nav class="tab-bar" id="tab-bar">
+      <button class="tab-btn active" data-tab="sim">Simulador</button>
+      <button class="tab-btn" data-tab="recoleccion">Proceso de recolección</button>
+      <button class="tab-btn" data-tab="rangos">Rangos óptimos</button>
+      <button class="tab-btn" data-tab="glosario">Glosario ES</button>
+      <button class="tab-btn" data-tab="glosario-en">Glossary EN</button>
+      <button class="tab-btn" data-tab="canvas-model">Modelo Canvas</button>
+    </nav>
+
+    <!-- ══════════ TAB 1: SIMULADOR ══════════ -->
+    <div id="tab-sim" class="tab-pane active">
+      <div class="main-grid">
+        <div class="canvas-col">
+          <canvas id="bioreactor-canvas" height="340"></canvas>
+          <div class="stats-row">
+            <div class="stat-card">
+              <div class="stat-label">Densidad óptica</div>
+              <div class="stat-value" id="s-density">0%</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Día (de 20)</div>
+              <div class="stat-value" id="s-days">0.0 / 20</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Tasa crecimiento</div>
+              <div class="stat-value" id="s-rate">0%</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Salinidad</div>
+              <div class="stat-value" id="s-salinity">Óptima</div>
+            </div>
+          </div>
+          <div class="alert-box alert-info" id="s-alert">Ajusta las variables y presiona <strong>Iniciar
+              cultivo</strong>.</div>
+        </div>
+
+        <div class="ctrl-panel">
+          <div class="ctrl-section-title">Variables del cultivo</div>
+
+          <div class="ctrl-row">
+            <div class="ctrl-label">
+              <span class="ctrl-name"
+                data-tooltip="Escala de acidez/basicidad del medio. Óptimo para Spirulina: 9.0–10.0. Se ajusta con NaOH al 1%.">pH
+                del medio</span>
+              <span class="ctrl-value" id="v-ph">9.5</span>
+            </div>
+            <input type="range" id="r-ph" min="6" max="12" step="0.1" value="9.5">
+            <div class="range-markers"><span>6</span><span>9-10</span><span>12</span></div>
+          </div>
+
+          <div class="ctrl-row">
+            <div class="ctrl-label">
+              <span class="ctrl-name"
+                data-tooltip="Temperatura del medio de cultivo. Óptimo: 28–32°C. Por encima de 38°C ocurre muerte celular.">Temperatura
+                °C</span>
+              <span class="ctrl-value" id="v-temp">30</span>
+            </div>
+            <input type="range" id="r-temp" min="15" max="45" step="1" value="30">
+            <div class="range-markers"><span>15</span><span>28-32</span><span>45</span></div>
+          </div>
+
+          <div class="ctrl-row">
+            <div class="ctrl-label">
+              <span class="ctrl-name"
+                data-tooltip="Intensidad de luz LED. Óptimo: 6000–8000 lux. Por encima de 10000 lux se produce fotoinhibición.">Luz
+                (lux)</span>
+              <span class="ctrl-value" id="v-luz">7000</span>
+            </div>
+            <input type="range" id="r-luz" min="1000" max="12000" step="500" value="7000">
+            <div class="range-markers"><span>1k</span><span>6k-8k</span><span>12k</span></div>
+          </div>
+
+          <div class="ctrl-row">
+            <div class="ctrl-label">
+              <span class="ctrl-name"
+                data-tooltip="Porcentaje de CO₂ en el flujo de aireación. Óptimo: 1.5–3.0%. Exceso acidifica el medio.">CO₂
+                aireación %</span>
+              <span class="ctrl-value" id="v-co2">2.0</span>
+            </div>
+            <input type="range" id="r-co2" min="0" max="10" step="0.5" value="2">
+            <div class="range-markers"><span>0</span><span>1.5-3</span><span>10</span></div>
+          </div>
+
+          <div class="ctrl-row">
+            <div class="ctrl-label">
+              <span class="ctrl-name"
+                data-tooltip="Bicarbonato de sodio — principal fuente de carbono inorgánico del medio Zarrouk. Óptimo: 14–19 g/L.">Bicarbonato
+                g/L</span>
+              <span class="ctrl-value" id="v-bic">16.8</span>
+            </div>
+            <input type="range" id="r-bic" min="5" max="25" step="0.5" value="16.8">
+            <div class="range-markers"><span>5</span><span>14-19</span><span>25</span></div>
+          </div>
+
+          <div class="ctrl-row">
+            <div class="ctrl-label">
+              <span class="ctrl-name"
+                data-tooltip="Nitrato de sodio — fuente primaria de nitrógeno para la síntesis de proteínas. Óptimo: 2.0–3.5 g/L.">Nitrato
+                g/L</span>
+              <span class="ctrl-value" id="v-nit">2.5</span>
+            </div>
+            <input type="range" id="r-nit" min="0.5" max="6" step="0.1" value="2.5">
+            <div class="range-markers"><span>0.5</span><span>2-3.5</span><span>6</span></div>
+          </div>
+
+          <div class="ctrl-row">
+            <div class="ctrl-label">
+              <span class="ctrl-name"
+                data-tooltip="Horas de luz por ciclo de 24h. Óptimo: 10–14h. El ciclo oscuro es necesario para respiración y síntesis proteica.">Fotoperiodo
+                h</span>
+              <span class="ctrl-value" id="v-foto">12</span>
+            </div>
+            <input type="range" id="r-foto" min="6" max="24" step="1" value="12">
+            <div class="range-markers"><span>6</span><span>10-14</span><span>24</span></div>
+          </div>
+
+          <div class="ctrl-row">
+            <div class="ctrl-label">
+              <span class="ctrl-name"
+                data-tooltip="Concentración de sal en el medio. Óptimo para Spirulina: 10–20 g/L. Muy alta o muy baja inhibe el crecimiento por estrés osmótico.">Salinidad
+                g/L</span>
+              <span class="ctrl-value" id="v-sal">15</span>
+            </div>
+            <input type="range" id="r-sal" min="0" max="60" step="1" value="15">
+            <div class="range-markers"><span>0</span><span>10-20</span><span>60</span></div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" id="btn-start">Iniciar cultivo</button>
+            <button class="btn btn-success" id="btn-harvest" disabled>Cosechar biomasa</button>
+          </div>
+
+          <div class="bio-section">
+            <div class="ctrl-section-title">Composición de la biomasa</div>
+            <div class="bio-row"><span class="bio-label" title="50–70% · Nitrogen source">Proteínas</span>
+              <div class="bio-track">
+                <div class="bio-fill" id="bp-prot" style="width:0%;background:var(--accent)"></div>
+              </div><span class="bio-pct" id="bv-prot">0%</span>
+            </div>
+            <div class="bio-row"><span class="bio-label" title="5–10% · Free amino acids">Aminoác.</span>
+              <div class="bio-track">
+                <div class="bio-fill" id="bp-aa" style="width:0%;background:var(--accent-light)"></div>
+              </div><span class="bio-pct" id="bv-aa">0%</span>
+            </div>
+            <div class="bio-row"><span class="bio-label" title="15–25% · Carbohydrates">Carbohi.</span>
+              <div class="bio-track">
+                <div class="bio-fill" id="bp-carb" style="width:0%;background:var(--amber)"></div>
+              </div><span class="bio-pct" id="bv-carb">0%</span>
+            </div>
+            <div class="bio-row"><span class="bio-label" title="6–12% · Lipids">Lípidos</span>
+              <div class="bio-track">
+                <div class="bio-fill" id="bp-lip" style="width:0%;background:var(--pink)"></div>
+              </div><span class="bio-pct" id="bv-lip">0%</span>
+            </div>
+            <div class="bio-row"><span class="bio-label"
+                title="Trazas · Vitamins A, B1, B2, B6, B12, E">Vitaminas</span>
+              <div class="bio-track">
+                <div class="bio-fill" id="bp-vit" style="width:0%;background:var(--yellow)"></div>
+              </div><span class="bio-pct" id="bv-vit">0%</span>
+            </div>
+            <div class="bio-row"><span class="bio-label" title="Trazas · Chlorophyll, Phycocyanin">Pigmentos</span>
+              <div class="bio-track">
+                <div class="bio-fill" id="bp-pig" style="width:0%;background:var(--purple)"></div>
+              </div><span class="bio-pct" id="bv-pig">0%</span>
+            </div>
+            <div class="bio-row"><span class="bio-label" title="Trazas–1% · Fe, Mg, Zn, Cu, Mn">Minerales</span>
+              <div class="bio-track">
+                <div class="bio-fill" id="bp-min" style="width:0%;background:var(--blue)"></div>
+              </div><span class="bio-pct" id="bv-min">0%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ TAB 2: RECOLECCIÓN ══════════ -->
+    <div id="tab-recoleccion" class="tab-pane">
+      <div class="progress-bar">
+        <div class="progress-fill" id="rc-progress" style="width:0%"></div>
+      </div>
+      <div class="step-nav" id="step-nav"></div>
+      <div class="step-content" id="step-content"></div>
+    </div>
+
+    <!-- ══════════ TAB 3: RANGOS ÓPTIMOS ══════════ -->
+    <div id="tab-rangos" class="tab-pane">
+      <div class="rango-header-box">
+        <div class="rango-header-title">Rangos óptimos para el cultivo en biorreactor</div>
+        <div class="rango-header-sub">Parámetros de referencia basados en el medio Zarrouk y bibliografía especializada
+          (FAO, ICA, Becker 1994). Los valores resaltados en verde corresponden al rango de máxima tasa de crecimiento
+          de <em>Spirulina platensis</em> y <em></em>.</div>
+      </div>
+      <div class="rangos-grid">
+        <div class="rango-card rc-ph">
+          <div class="rango-var">pH del medio</div>
+          <div class="rango-val">9.0 – 10.0</div>
+          <div class="rango-unidad">Escala pH (adimensional)</div>
+          <div class="rango-bars">
+            <div class="rbar" style="height:30%;background:rgba(226,75,74,.5)" title="< 8: inhibe crecimiento"></div>
+            <div class="rbar" style="height:55%;background:rgba(239,159,39,.7)" title="8–9: crecimiento reducido"></div>
+            <div class="rbar" style="height:100%;background:#1D9E75" title="9–10: óptimo"></div>
+            <div class="rbar" style="height:55%;background:rgba(239,159,39,.7)" title="10–11: aceptable"></div>
+            <div class="rbar" style="height:20%;background:rgba(226,75,74,.5)" title="> 11: tóxico"></div>
+          </div>
+          <div class="rango-nota">pH óptimo: <strong>9.0–10.0</strong> · Aceptable: 8.0–11.0 · Se ajusta con NaOH al 1%.
+          </div>
+        </div>
+
+        <div class="rango-card rc-temp">
+          <div class="rango-var">Temperatura</div>
+          <div class="rango-val">28 – 32 °C</div>
+          <div class="rango-unidad">Grados Celsius (°C)</div>
+          <div class="rango-bars">
+            <div class="rbar" style="height:20%;background:rgba(133,183,235,.5)" title="< 20°C: lento"></div>
+            <div class="rbar" style="height:60%;background:rgba(239,159,39,.7)" title="24–28°C: reducido"></div>
+            <div class="rbar" style="height:100%;background:#EF9F27" title="28–32°C: óptimo"></div>
+            <div class="rbar" style="height:60%;background:rgba(239,159,39,.7)" title="32–36°C: aceptable"></div>
+            <div class="rbar" style="height:20%;background:rgba(226,75,74,.5)" title="> 38°C: muerte celular"></div>
+          </div>
+          <div class="rango-nota">Óptimo: <strong>28–32 °C</strong> · Aceptable: 24–36 °C · > 38°C muerte celular.</div>
+        </div>
+
+        <div class="rango-card rc-luz">
+          <div class="rango-var">Intensidad luminosa</div>
+          <div class="rango-val">6 000 – 8 000 lux</div>
+          <div class="rango-unidad">Lux (lm/m²) · LED blanco continuo</div>
+          <div class="rango-bars">
+            <div class="rbar" style="height:25%;background:rgba(133,183,235,.5)" title="< 2000 lux: insuficiente"></div>
+            <div class="rbar" style="height:60%;background:rgba(239,159,39,.7)" title="3000–6000: aceptable"></div>
+            <div class="rbar" style="height:100%;background:#FAC775" title="6000–8000: óptimo"></div>
+            <div class="rbar" style="height:60%;background:rgba(239,159,39,.7)" title="8000–10000: aceptable"></div>
+            <div class="rbar" style="height:30%;background:rgba(226,75,74,.5)" title="> 10000: fotoinhibición"></div>
+          </div>
+          <div class="rango-nota">Óptimo: <strong>6 000–8 000 lux</strong> · Aceptable: 3 000–10 000 · > 10 000
+            fotoinhibición.</div>
+        </div>
+
+        <div class="rango-card rc-co2">
+          <div class="rango-var">CO₂ en aireación</div>
+          <div class="rango-val">1.5 – 3.0 %</div>
+          <div class="rango-unidad">Porcentaje volumétrico (% v/v)</div>
+          <div class="rango-bars">
+            <div class="rbar" style="height:30%;background:rgba(133,183,235,.5)" title="< 0.5%: deficiente"></div>
+            <div class="rbar" style="height:65%;background:rgba(239,159,39,.7)" title="0.5–1.5%: aceptable"></div>
+            <div class="rbar" style="height:100%;background:#85B7EB" title="1.5–3%: óptimo"></div>
+            <div class="rbar" style="height:65%;background:rgba(239,159,39,.7)" title="3–5%: aceptable"></div>
+            <div class="rbar" style="height:25%;background:rgba(226,75,74,.5)" title="> 5%: acidificación"></div>
+          </div>
+          <div class="rango-nota">Óptimo: <strong>1.5–3.0 %</strong> · > 5% acidifica el medio.</div>
+        </div>
+
+        <div class="rango-card rc-bic">
+          <div class="rango-var">Bicarbonato (NaHCO₃)</div>
+          <div class="rango-val">14.0 – 19.0 g/L</div>
+          <div class="rango-unidad">Gramos por litro (g/L) · Medio Zarrouk</div>
+          <div class="rango-bars">
+            <div class="rbar" style="height:25%;background:rgba(226,75,74,.5)" title="< 10 g/L: deficiente"></div>
+            <div class="rbar" style="height:65%;background:rgba(239,159,39,.7)" title="10–14 g/L: aceptable"></div>
+            <div class="rbar" style="height:100%;background:#9FE1CB" title="14–19 g/L: óptimo"></div>
+            <div class="rbar" style="height:65%;background:rgba(239,159,39,.7)" title="19–22 g/L: aceptable"></div>
+            <div class="rbar" style="height:25%;background:rgba(226,75,74,.5)" title="> 22 g/L: salinidad excesiva">
+            </div>
+          </div>
+          <div class="rango-nota">Zarrouk estándar: <strong>16.8 g/L</strong> · Rango óptimo: 14–19 g/L.</div>
+        </div>
+
+        <div class="rango-card rc-nit">
+          <div class="rango-var">Nitrato de sodio (NaNO₃)</div>
+          <div class="rango-val">2.0 – 3.5 g/L</div>
+          <div class="rango-unidad">Gramos por litro (g/L) · Fuente de nitrógeno</div>
+          <div class="rango-bars">
+            <div class="rbar" style="height:20%;background:rgba(226,75,74,.5)" title="< 1 g/L: deficiencia N"></div>
+            <div class="rbar" style="height:60%;background:rgba(239,159,39,.7)" title="1–2 g/L: reducido"></div>
+            <div class="rbar" style="height:100%;background:#ED93B1" title="2–3.5 g/L: óptimo"></div>
+            <div class="rbar" style="height:55%;background:rgba(239,159,39,.7)" title="3.5–5 g/L: aceptable"></div>
+            <div class="rbar" style="height:20%;background:rgba(226,75,74,.5)" title="> 5 g/L: inhibe crecimiento">
+            </div>
+          </div>
+          <div class="rango-nota">Zarrouk estándar: <strong>2.5 g/L</strong> · Rango óptimo: 2.0–3.5 g/L.</div>
+        </div>
+
+        <div class="rango-card rc-foto">
+          <div class="rango-var">Fotoperiodo</div>
+          <div class="rango-val">10 – 14 h luz / día</div>
+          <div class="rango-unidad">Horas de luz por ciclo de 24 h</div>
+          <div class="rango-bars">
+            <div class="rbar" style="height:30%;background:rgba(133,183,235,.5)" title="< 8h: insuficiente"></div>
+            <div class="rbar" style="height:65%;background:rgba(239,159,39,.7)" title="8–10h: reducido"></div>
+            <div class="rbar" style="height:100%;background:#7F77DD" title="10–14h: óptimo"></div>
+            <div class="rbar" style="height:65%;background:rgba(239,159,39,.7)" title="14–18h: aceptable"></div>
+            <div class="rbar" style="height:35%;background:rgba(226,75,74,.4)" title="> 20h: estrés lumínico"></div>
+          </div>
+          <div class="rango-nota">Óptimo: <strong>12h luz / 12h oscuridad</strong> · Aceptable: 8–18h.</div>
+        </div>
+
+        <div class="rango-card rc-sal">
+          <div class="rango-var">Salinidad</div>
+          <div class="rango-val">10 – 20 g/L</div>
+          <div class="rango-unidad">Gramos por litro (g/L)</div>
+          <div class="rango-bars">
+            <div class="rbar" style="height:25%;background:rgba(226,75,74,.5)" title="< 5 g/L: estrés hipoosmótico">
+            </div>
+            <div class="rbar" style="height:60%;background:rgba(239,159,39,.7)" title="5–10 g/L: aceptable bajo"></div>
+            <div class="rbar" style="height:100%;background:#5DCAA5" title="10–20 g/L: óptimo"></div>
+            <div class="rbar" style="height:60%;background:rgba(239,159,39,.7)" title="20–35 g/L: aceptable alto"></div>
+            <div class="rbar" style="height:25%;background:rgba(226,75,74,.5)" title="> 35 g/L: estrés hiperosmótico">
+            </div>
+          </div>
+          <div class="rango-nota">Óptimo: <strong>10–20 g/L</strong>. Spirulina tolera hasta 30 g/L, pero el crecimiento
+            se reduce. Salinidades extremas causan estrés osmótico y lisis celular.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ TAB 4: GLOSARIO ES ══════════ -->
+    <div id="tab-glosario" class="tab-pane">
+      <input class="search-input" id="glos-search" placeholder="Buscar término...">
+      <div class="filter-bar" id="glos-filter-bar">
+        <button class="filter-btn active" data-cat="all">Todos</button>
+        <button class="filter-btn" data-cat="bio">Biología</button>
+        <button class="filter-btn" data-cat="quim">Química</button>
+        <button class="filter-btn" data-cat="proc">Proceso</button>
+        <button class="filter-btn" data-cat="agro">Agronomía</button>
+      </div>
+      <div class="glossary-grid" id="glos-grid"></div>
+    </div>
+
+    <!-- ══════════ TAB 5: GLOSSARY EN ══════════ -->
+    <div id="tab-glosario-en" class="tab-pane">
+      <div class="rango-header-box" style="margin-bottom:14px">
+        <div class="rango-header-title">Glossary of Terms — English Version</div>
+        <div class="rango-header-sub">All technical terms used in this simulation, presented in English for
+          international reference.</div>
+      </div>
+      <input class="search-input" id="glos-en-search" placeholder="Search term...">
+      <div class="filter-bar" id="glos-en-filter-bar">
+        <button class="filter-btn active" data-cat="all">All</button>
+        <button class="filter-btn" data-cat="bio">Biology</button>
+        <button class="filter-btn" data-cat="quim">Chemistry</button>
+        <button class="filter-btn" data-cat="proc">Process</button>
+        <button class="filter-btn" data-cat="agro">Agronomy</button>
+      </div>
+      <div class="glossary-grid" id="glos-en-grid"></div>
+    </div>
+
+    <!-- ══════════ TAB 6: MODELO CANVAS ══════════ -->
+    <div id="tab-canvas-model" class="tab-pane">
+      <div class="rango-header-box" style="margin-bottom:14px">
+        <div class="rango-header-title">Modelo Canvas — Biofertilizante a base de Microalgas</div>
+        <div class="rango-header-sub">Business Model Canvas del emprendimiento de producción de biofertilizante
+          ecológico elaborado a partir de biomasa de <em>Spirulina platensis</em> para cultivos de ají. Autor: Carlos
+          Armando Herrera Muentes.</div>
+      </div>
+
+      <div class="canvas-model-grid">
+        <div class="cm-block">
+          <div class="cm-label">
+            <div class="cm-dot" style="background:#5DCAA5"></div><span style="color:#5DCAA5">Socios clave</span><span
+              class="cm-badge">Key Partners</span>
+          </div>
+          <ul class="cm-list">
+            <li>Universidades e institutos de investigación</li>
+            <li>Laboratorios de análisis de suelos</li>
+            <li>Asociaciones de agricultores y cooperativas</li>
+            <li>Proveedores de insumos biotecnológicos</li>
+            <li>ICA — Instituto Colombiano Agropecuario</li>
+            <li>iNNpulsa Colombia / SENA Fondo Emprender</li>
+          </ul>
+        </div>
+        <div class="cm-block">
+          <div class="cm-label">
+            <div class="cm-dot" style="background:#EF9F27"></div><span style="color:#EF9F27">Actividades
+              clave</span><span class="cm-badge">Key Activities</span>
+          </div>
+          <ul class="cm-list">
+            <li>Cultivo de microalgas mediante Método Zarrouk</li>
+            <li>Producción y formulación del biofertilizante</li>
+            <li>Control de calidad y análisis de biomasa</li>
+            <li>Análisis de fertilidad del suelo (pH, MO, NPK)</li>
+            <li>Distribución y asesoría técnica en campo</li>
+            <li>Investigación y desarrollo continuo</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="cm-block cm-highlight cm-full" style="margin-top:8px;margin-bottom:8px">
+        <div class="cm-label">
+          <div class="cm-dot" style="background:#1D9E75"></div><span style="color:#1D9E75">Propuesta de
+            valor</span><span class="cm-badge">Value Proposition</span>
+        </div>
+        <div class="cm-value-grid">
+          <div class="cm-value-card">
+            <div class="cm-value-title">Ambiental</div>
+            <div class="cm-value-text">Biofertilizante 100% ecológico. Reduce uso de fertilizantes sintéticos. Restaura
+              biodiversidad microbiana del suelo.</div>
+          </div>
+          <div class="cm-value-card">
+            <div class="cm-value-title">Técnico</div>
+            <div class="cm-value-text">Producido a partir de <em>Spirulina platensis</em> con 50–70% proteínas. Mejora
+              pH, materia orgánica y CIC del suelo.</div>
+          </div>
+          <div class="cm-value-card">
+            <div class="cm-value-title">Económico</div>
+            <div class="cm-value-text">Reduce costos de fertilización 20–35% por hectárea. Aumenta rendimiento del
+              cultivo de ají <em>(Capsicum annuum)</em>.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-model-grid-3">
+        <div class="cm-block">
+          <div class="cm-label">
+            <div class="cm-dot" style="background:#D4537E"></div><span style="color:#D4537E">Relaciones con
+              clientes</span><span class="cm-badge">Customer Rel.</span>
+          </div>
+          <ul class="cm-list">
+            <li>Asesoría técnica en fertilización</li>
+            <li>Capacitación sobre uso del biofertilizante</li>
+            <li>Seguimiento del rendimiento del cultivo</li>
+            <li>Soporte técnico en campo</li>
+            <li>Ferias agropecuarias regionales</li>
+          </ul>
+        </div>
+        <div class="cm-block">
+          <div class="cm-label">
+            <div class="cm-dot" style="background:#7F77DD"></div><span style="color:#7F77DD">Canales</span><span
+              class="cm-badge">Channels</span>
+          </div>
+          <ul class="cm-list">
+            <li>Venta directa a agricultores</li>
+            <li>Distribuidores de insumos agrícolas</li>
+            <li>Cooperativas agrícolas regionales</li>
+            <li>Redes sociales y promoción académica</li>
+            <li>Tiendas agropecuarias locales</li>
+          </ul>
+        </div>
+        <div class="cm-block">
+          <div class="cm-label">
+            <div class="cm-dot" style="background:#85B7EB"></div><span style="color:#85B7EB">Segmentos de
+              mercado</span><span class="cm-badge">Customer Seg.</span>
+          </div>
+          <ul class="cm-list">
+            <li>Agricultores pequeños y medianos</li>
+            <li>Asociaciones campesinas del Caribe</li>
+            <li>Proyectos de agricultura sostenible</li>
+            <li>Viveros y productores orgánicos</li>
+            <li>Instituciones con enfoque ambiental</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="canvas-model-grid" style="margin-top:8px">
+        <div class="cm-block">
+          <div class="cm-label">
+            <div class="cm-dot" style="background:#FAC775"></div><span style="color:#FAC775">Recursos clave</span><span
+              class="cm-badge">Key Resources</span>
+          </div>
+          <ul class="cm-list">
+            <li>Cepas de <em>Spirulina platensis</em> y <em></em></li>
+            <li>Biorreactor y equipos de laboratorio</li>
+            <li>Infraestructura de producción y control</li>
+            <li>Personal técnico e investigador</li>
+            <li>Conocimiento del Método Zarrouk</li>
+          </ul>
+        </div>
+        <div class="cm-block cm-problema">
+          <div class="cm-label"><span style="color:#F09595">Problema técnico identificado</span><span class="cm-badge"
+              style="background:rgba(226,75,74,.2);color:#F09595">Technical Problem</span></div>
+          <ul class="cm-list">
+            <li>Contaminación del cultivo microalgal</li>
+            <li>Control estricto de condiciones del biorreactor</li>
+            <li>Disponibilidad y costo de nutrientes del medio</li>
+            <li>Dificultad en la cosecha de biomasa a escala</li>
+            <li>Estabilidad del biofertilizante formulado (≤ 15 días)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="canvas-model-grid" style="margin-top:8px">
+        <div class="cm-block">
+          <div class="cm-label">
+            <div class="cm-dot" style="background:#F09595"></div><span style="color:#F09595">Estructura de
+              costos</span><span class="cm-badge">Cost Structure</span>
+          </div>
+          <ul class="cm-list">
+            <li>Producción de biomasa microalgal</li>
+            <li>Insumos de laboratorio (medio Zarrouk)</li>
+            <li>Equipos y mantenimiento del biorreactor</li>
+            <li>Transporte y distribución del producto</li>
+            <li>Investigación y desarrollo continuo</li>
+            <li>Capacitación y asistencia técnica a agricultores</li>
+          </ul>
+        </div>
+        <div class="cm-block">
+          <div class="cm-label">
+            <div class="cm-dot" style="background:#9FE1CB"></div><span style="color:#9FE1CB">Fuentes de
+              ingresos</span><span class="cm-badge">Revenue Streams</span>
+          </div>
+          <ul class="cm-list">
+            <li>Venta directa del biofertilizante formulado</li>
+            <li>Servicios de asesoría agrícola especializada</li>
+            <li>Convenios con asociaciones agrícolas regionales</li>
+            <li>Proyectos con instituciones agrícolas y ambientales</li>
+            <li>Alianzas con agroindustrias para producción a escala</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
