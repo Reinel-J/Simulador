@@ -24,6 +24,7 @@
       co2: { optLo: 1.5, optHi: 3, warnLo: 0.3, warnHi: 6 },
       bic: { optLo: 14, optHi: 19, warnLo: 8, warnHi: 23 },
       nit: { optLo: 2, optHi: 3.5, warnLo: 0.8, warnHi: 5.5 },
+      fosf: { optLo: 0.1, optHi: 0.5, warnLo: 0, warnHi: 2.0 },
       foto: { optLo: 10, optHi: 14, warnLo: 7, warnHi: 20 },
       sal: { optLo: 10, optHi: 20, warnLo: 5, warnHi: 35 }
     }
@@ -85,6 +86,7 @@
       co2: document.getElementById('r-co2'),
       bic: document.getElementById('r-bic'),
       nit: document.getElementById('r-nit'),
+      fosf: document.getElementById('r-fosf'),
       foto: document.getElementById('r-foto'),
       sal: document.getElementById('r-sal')
     };
@@ -97,6 +99,7 @@
       co2: document.getElementById('v-co2'),
       bic: document.getElementById('v-bic'),
       nit: document.getElementById('v-nit'),
+      fosf: document.getElementById('v-fosf'),
       foto: document.getElementById('v-foto'),
       sal: document.getElementById('v-sal')
     };
@@ -135,24 +138,48 @@
         co2: +DOM.ranges.co2.value,
         bic: +DOM.ranges.bic.value,
         nit: +DOM.ranges.nit.value,
+        fosf: +DOM.ranges.fosf.value,
         foto: +DOM.ranges.foto.value,
         sal: +DOM.ranges.sal.value
       };
     },
 
-    /** Calculate compound growth rate from all parameters */
+    /** Calculate Factor de Crecimiento (FC) and overall GrowthRate */
     calcGrowthRate(v) {
       const ranges = CONFIG.OPTIMAL_RANGES;
+
+      // 1. Calcular Factor de Crecimiento (FC) normalizando los valores clave
+      const normNitrato = this.nutrientScore(v.nit, ranges.nit.optLo, ranges.nit.optHi, ranges.nit.warnLo, ranges.nit.warnHi);
+      const normFosfato = this.nutrientScore(v.fosf, ranges.fosf.optLo, ranges.fosf.optHi, ranges.fosf.warnLo, ranges.fosf.warnHi);
+      const normSalinidad = this.nutrientScore(v.sal, ranges.sal.optLo, ranges.sal.optHi, ranges.sal.warnLo, ranges.sal.warnHi);
+
+      let FC = (normNitrato * 0.4) + (normFosfato * 0.3) + (normSalinidad * 0.3);
+      FC = Math.max(0, Math.min(1, FC));
+      state.fc = FC;
+
+      // 2. Factores ambientales base
       const s =
         this.nutrientScore(v.ph, ranges.ph.optLo, ranges.ph.optHi, ranges.ph.warnLo, ranges.ph.warnHi) *
         this.nutrientScore(v.temp, ranges.temp.optLo, ranges.temp.optHi, ranges.temp.warnLo, ranges.temp.warnHi) *
         this.nutrientScore(v.luz, ranges.luz.optLo, ranges.luz.optHi, ranges.luz.warnLo, ranges.luz.warnHi) *
         this.nutrientScore(v.co2, ranges.co2.optLo, ranges.co2.optHi, ranges.co2.warnLo, ranges.co2.warnHi) *
         this.nutrientScore(v.bic, ranges.bic.optLo, ranges.bic.optHi, ranges.bic.warnLo, ranges.bic.warnHi) *
-        this.nutrientScore(v.nit, ranges.nit.optLo, ranges.nit.optHi, ranges.nit.warnLo, ranges.nit.warnHi) *
-        this.nutrientScore(v.foto, ranges.foto.optLo, ranges.foto.optHi, ranges.foto.warnLo, ranges.foto.warnHi) *
-        this.nutrientScore(v.sal, ranges.sal.optLo, ranges.sal.optHi, ranges.sal.warnLo, ranges.sal.warnHi);
-      return Math.max(0.02, Math.min(1, s));
+        this.nutrientScore(v.foto, ranges.foto.optLo, ranges.foto.optHi, ranges.foto.warnLo, ranges.foto.warnHi);
+
+      // 3. Tasa de Crecimiento final guiada por FC
+      let growthRate = FC * s;
+
+      // 4. Estrés Osmótico muy fuerte (Salinidad)
+      if (v.sal < 13 || v.sal > 35) {
+        growthRate *= 0.15; // Reduce drásticamente
+      }
+
+      // 5. Efecto especial del nitrato óptimo en el tiempo (impulso en tasa)
+      if (v.nit >= ranges.nit.optLo && v.nit <= ranges.nit.optHi) {
+        growthRate *= 1.25;
+      }
+
+      return Math.max(0.01, Math.min(1, growthRate));
     },
 
     /** Get salinity status text */
@@ -213,14 +240,19 @@
         alerts.push({ text: 'Nitrato fuera de rango óptimo (2–3.5 g/L)', severity: 'warn' });
       }
 
+      if (v.fosf < r.fosf.optLo || v.fosf > r.fosf.optHi) {
+        alerts.push({ text: 'Fosfato fuera de rango óptimo (0.1-0.5 g/L)', severity: 'warn' });
+      }
+
       if (v.foto > 20) alerts.push({ text: 'Fotoperiodo excesivo → estrés lumínico', severity: 'warn' });
       else if (v.foto < r.foto.optLo || v.foto > r.foto.optHi) {
         alerts.push({ text: 'Fotoperiodo fuera de rango (10–14h)', severity: 'warn' });
       }
 
-      if (v.sal < 5) alerts.push({ text: 'Baja salinidad → estrés osmótico (lisis celular)', severity: 'danger' });
-      else if (v.sal > 35) alerts.push({ text: 'Alta salinidad → estrés hiperosmótico severo', severity: 'danger' });
-      else if (v.sal < r.sal.optLo || v.sal > r.sal.optHi) {
+      // Estrés Osmótico
+      if (v.sal < 13 || v.sal > 35) {
+        alerts.push({ text: 'Estrés Osmótico (Riego de daño celular grave)', severity: 'danger' });
+      } else if (v.sal < r.sal.optLo || v.sal > r.sal.optHi) {
         alerts.push({ text: 'Salinidad fuera de rango óptimo (10–20 g/L)', severity: 'warn' });
       }
 
@@ -353,33 +385,30 @@
       }
       ctx.stroke();
 
-      // Liquid body — color changes dynamically based on conditions
-      const salinityFactor = Simulation.nutrientScore(v.sal, 10, 20, 5, 35);
-      const nutrientFactor = Simulation.nutrientScore(v.nit, 2, 3.5, 0.8, 5.5);
-      const healthFactor = (gr + salinityFactor + nutrientFactor) / 3;
-
-      // Green → yellow/brown based on health
+      // Liquid body — color changes dynamically based on FC and Osmotic Stress
       let algaeHue, algaeSat, algaeLit;
-      if (healthFactor > 0.7) {
-        // Healthy — bright green
-        algaeHue = 135 + gr * 20;
-        algaeSat = 35 + density * 0.55;
-        algaeLit = 7 + density * 0.20;
-      } else if (healthFactor > 0.4) {
-        // Moderate — yellow-green
-        algaeHue = 100 + healthFactor * 40;
-        algaeSat = 25 + density * 0.35;
-        algaeLit = 7 + density * 0.18;
+
+      if (v.sal < 13 || v.sal > 35) {
+        // Estrés Osmótico: Verde Pálido (#A4C3A2)
+        algaeHue = 116; algaeSat = 20; algaeLit = 65;
+      } else if (state.fc > 0.9) {
+        // Verde Intenso (#526F4C)
+        algaeHue = 110; algaeSat = 20; algaeLit = 36;
+      } else if (state.fc >= 0.5) {
+        // Verde Medio (#739E69)
+        algaeHue = 109; algaeSat = 20; algaeLit = 51;
       } else {
-        // Poor — brownish yellow
-        algaeHue = 60 + healthFactor * 50;
-        algaeSat = 20 + density * 0.2;
-        algaeLit = 6 + density * 0.12;
+        // Verde pálido/amarillento (#B8C372)
+        algaeHue = 68; algaeSat = 40; algaeLit = 60;
       }
 
-      // Light intensity affects brightness
+      // Light intensity affects brightness slightly
       const lightFactor = v.luz / 8000;
-      algaeLit *= (0.7 + lightFactor * 0.3);
+      algaeLit *= (0.8 + lightFactor * 0.2);
+
+      // Density affects saturation and lightness for visual depth
+      algaeSat += density * 0.2;
+      algaeLit -= density * 0.15;
 
       ctx.fillStyle = `hsl(${algaeHue},${algaeSat}%,${algaeLit}%)`;
       ctx.fillRect(wallThick, liquidTop, w - wallThick * 2, h - liquidTop);
@@ -420,12 +449,14 @@
 
         // Color depends on health
         let cols;
-        if (healthFactor > 0.7) {
-          cols = ['#1D9E75', '#0F6E56', '#5DCAA5'];
-        } else if (healthFactor > 0.4) {
-          cols = ['#7a9e1d', '#5a7315', '#a5ca5d'];
+        if (v.sal < 13 || v.sal > 35) {
+          cols = ['#A4C3A2', '#8FB98E', '#B8D2B6'];
+        } else if (state.fc > 0.9) {
+          cols = ['#526F4C', '#3A4F36', '#698863'];
+        } else if (state.fc >= 0.5) {
+          cols = ['#739E69', '#5A7F51', '#8AB580'];
         } else {
-          cols = ['#9e7a1d', '#735a15', '#caaa5d'];
+          cols = ['#B8C372', '#9EA95B', '#D1DD88'];
         }
         ctx.fillStyle = cols[p.type];
 
@@ -504,18 +535,20 @@
       }
 
       // Top status bar
-      const statuses = ['Esperando inicio', 'Inoculando...', 'Inicio de crecimiento', 'Fase exponencial', 'Cultivo denso', 'Listo para cosechar'];
+      const statuses = ['Esperando inicio', 'Inoculando...', 'Fase Lag', 'Fase Exponencial', 'Fase Estacionaria', 'Listo para cosechar'];
       const si = state.running ? Math.min(5, Math.floor(density / 20)) : 0;
       ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.beginPath(); ctx.roundRect(0, 0, w, 28, 0); ctx.fill();
       const topCol = density > 70 ? '#9FE1CB' : density > 40 ? '#FAC775' : '#85B7EB';
       ctx.fillStyle = topCol; ctx.font = '500 11px Inter, sans-serif'; ctx.textAlign = 'center';
-      ctx.fillText(`${statuses[si]} · Crecimiento: ${Math.round(gr * 100)}% · Día ${state.days.toFixed(1)}`, w / 2, 18);
+      const grPct = Math.round(gr * 100);
+      const densityPct = Math.round(density);
+      ctx.fillText(`Progreso: ${densityPct}% (Día ${state.days.toFixed(1)})  |  Tasa de Crecimiento: ${grPct}%  |  FC: ${state.fc.toFixed(2)}`, w / 2, 18);
 
       // Bottom parameter bar
       if (density > 0) {
         ctx.fillStyle = 'rgba(0,0,0,.40)'; ctx.fillRect(0, h - 22, w, 22);
         ctx.fillStyle = '#5DCAA5'; ctx.font = '10px Inter, sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText(`pH ${v.ph.toFixed(1)}  |  ${v.temp}°C  |  ${Math.round(v.luz / 1000)}k lux  |  CO₂ ${v.co2.toFixed(1)}%  |  Sal ${v.sal}g/L  |  Crec: ${Math.round(gr * 100)}%`, 8, h - 8);
+        ctx.fillText(`pH ${v.ph.toFixed(1)}  |  ${v.temp}°C  |  ${Math.round(v.luz / 1000)}k lux  |  FC ${state.fc.toFixed(2)}  |  Tasa Crec: ${grPct}%`, 8, h - 8);
       }
     },
 
@@ -1267,7 +1300,7 @@
     Storage.load();
 
     // Initialize all slider display values
-    const decimalMap = { ph: 1, temp: 0, luz: 0, co2: 1, bic: 1, nit: 1, foto: 0, sal: 0 };
+    const decimalMap = { ph: 1, temp: 0, luz: 0, co2: 1, bic: 1, nit: 1, fosf: 1, foto: 0, sal: 0 };
     Object.keys(DOM.ranges).forEach(key => {
       UI.updateSliderValue(key, decimalMap[key]);
     });
