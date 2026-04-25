@@ -1451,3 +1451,143 @@ input[type=range]::-moz-range-thumb {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(29, 158, 117, 0.5);
 }
+
+/* ═══════════════════════════════════════════════════════
+   LANDING TOPBAR
+   ═══════════════════════════════════════════════════════ */
+.landing-topbar {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 3;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px clamp(12px, 3vw, 24px);
+  border-bottom: .5px solid rgba(29, 158, 117, .15);
+  background: rgba(4, 14, 8, .55); backdrop-filter: blur(6px);
+  font-size: 11px; color: rgba(159, 225, 203, .6); letter-spacing: .04em;
+}
+.landing-topbar-left { display: flex; align-items: center; gap: 8px; }
+.landing-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); animation: pulseDot 2s infinite;
+}
+@keyframes pulseDot {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .5; transform: scale(.8); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   DEAD / CONTAMINATED OVERLAY
+   ═══════════════════════════════════════════════════════ */
+.dead-overlay {
+  display: none; position: fixed; inset: 0; z-index: 500;
+  background: rgba(4, 6, 4, .92); backdrop-filter: blur(12px);
+  align-items: center; justify-content: center;
+  flex-direction: column; text-align: center; padding: 24px;
+}
+.dead-overlay.show { display: flex; animation: deadFadeIn .5s ease; }
+@keyframes deadFadeIn {
+  from { opacity: 0; transform: scale(.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.dead-icon { font-size: 48px; margin-bottom: 12px; animation: deadShake .6s ease; }
+@keyframes deadShake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.dead-title {
+  font-size: clamp(18px, 4vw, 26px); font-weight: 700;
+  color: var(--red-light); margin-bottom: 8px;
+}
+.dead-sub {
+  font-size: clamp(12px, 2vw, 14px); color: rgba(240, 149, 149, .8);
+  line-height: 1.65; max-width: 400px; margin-bottom: 20px;
+}
+.dead-restart {
+  background: rgba(42, 13, 13, .8); color: var(--red-light);
+  border: .5px solid rgba(226, 75, 74, .5);
+  padding: 10px 24px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; font-family: var(--font);
+  cursor: pointer; transition: all var(--transition-fast);
+}
+.dead-restart:hover { background: rgba(61, 16, 16, .9); transform: translateY(-1px); }
+
+/* ═══════════════════════════════════════════════════════
+   HEALTH BAR
+   ═══════════════════════════════════════════════════════ */
+.health-track {
+  height: 8px; background: rgba(255, 255, 255, .06);
+  border-radius: 4px; margin-top: 6px; overflow: hidden;
+}
+.health-fill {
+  height: 100%; width: 100%; border-radius: 4px;
+  background: var(--accent);
+  transition: width .6s ease, background .6s ease;
+}
+.health-labels {
+  display: flex; justify-content: space-between;
+  font-size: 9px; color: var(--text-muted); margin-top: 3px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   NUTRIENT SECTION
+   ═══════════════════════════════════════════════════════ */
+.nutrient-section {
+  margin-top: 10px; padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════
+   CANVAS GLOW EFFECT
+   ═══════════════════════════════════════════════════════ */
+#bioreactor-canvas {
+  animation: canvasGlow 4s ease-in-out infinite alternate;
+}
+@keyframes canvasGlow {
+  from { box-shadow: var(--shadow-md), 0 0 20px rgba(29, 158, 117, .08); }
+  to { box-shadow: var(--shadow-md), 0 0 35px rgba(29, 158, 117, .18); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   ENHANCED MICRO-ANIMATIONS
+   ═══════════════════════════════════════════════════════ */
+.stat-card {
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+.stat-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm), 0 0 12px rgba(29, 158, 117, .1);
+  transform: translateY(-1px);
+}
+.ctrl-row {
+  transition: background var(--transition-fast);
+  padding: 4px 6px; border-radius: 6px; margin: 0 -6px 10px;
+}
+.ctrl-row:hover { background: rgba(29, 158, 117, .04); }
+
+.rango-card { animation: fadeInUp .4s ease backwards; }
+.rango-card:nth-child(1) { animation-delay: .05s; }
+.rango-card:nth-child(2) { animation-delay: .1s; }
+.rango-card:nth-child(3) { animation-delay: .15s; }
+.rango-card:nth-child(4) { animation-delay: .2s; }
+.rango-card:nth-child(5) { animation-delay: .25s; }
+.rango-card:nth-child(6) { animation-delay: .3s; }
+.rango-card:nth-child(7) { animation-delay: .35s; }
+.rango-card:nth-child(8) { animation-delay: .4s; }
+.rango-card:nth-child(9) { animation-delay: .45s; }
+.rango-card:nth-child(10) { animation-delay: .5s; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.glos-card { animation: fadeInUp .3s ease backwards; }
+
+/* ═══════════════════════════════════════════════════════
+   ADDITIONAL RESPONSIVE
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  .health-labels { font-size: 8px; }
+  .dead-overlay { padding: 16px; }
+}
